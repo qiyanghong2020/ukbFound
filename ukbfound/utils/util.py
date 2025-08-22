@@ -16,7 +16,7 @@ from matplotlib import pyplot as plt
 from matplotlib import axes
 from IPython import get_ipython
 
-from .. import logger
+from ukbfound import logger
 
 
 def gene_vocabulary():

@@ -15,7 +15,7 @@ if not logger.hasHandlers() or len(logger.handlers) == 0:
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
-from .trainer import (
+from ukbfound.trainer import (
     prepare_data,
     prepare_dataloader,
     train,

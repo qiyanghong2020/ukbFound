@@ -1,14 +1,12 @@
 # %%
 import copy
-import gc
 import json
 import os
 from pathlib import Path
 import shutil
 import sys
 import time
-import traceback
-from typing import List, Tuple, Dict, Union, Optional
+from typing import Tuple, Dict
 import warnings
 import pandas as pd
 import pickle
@@ -26,20 +24,19 @@ from torchtext.vocab import Vocab
 from torchtext._torchtext import (
     Vocab as VocabPybind,
 )
-from scanpy.get import _get_obs_rep, _set_obs_rep
-
+from scanpy.get import _get_obs_rep
 
 sys.path.insert(0, "../")
 import ukbfound as scg
 from ukbfound.model import TransformerModel
 from ukbfound.tokenizer import tokenize_and_pad_batch, random_mask_value
-from ukbfound.loss import (
+from ukbfound.model.loss import (
     masked_mse_loss,
     criterion_neg_log_bernoulli,
 )
 from ukbfound.tokenizer.trait_tokenizer import ValueVocab
-from ukbfound.preprocess import Preprocessor
-from ukbfound.utils import set_seed, category_str2int, eval_scib_metrics
+from ukbfound.model.preprocess import Preprocessor
+from ukbfound.utils import set_seed
 
 import torch.distributed as dist
 

@@ -11,8 +11,7 @@ import scanpy as sc
 from typing import List, Tuple, Dict, Optional
 from ukbfound.tokenizer import tokenize_and_pad_batch, random_mask_value
 from ukbfound import SubsetsBatchSampler
-from ukbfound.loss import (
-    masked_relative_error,
+from ukbfound.model.loss import (
     criterion_neg_log_bernoulli,
 )
 from ukbfound.utils import eval_scib_metrics
