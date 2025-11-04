@@ -3,6 +3,7 @@
 A lightweight yet rigorous foundation model that encodes thousands of UK Biobank (UKB) traits into language-like sequences for three families of applications: (1) disease subgroup stratification with survival differences; (2) inter‑disease correlation/community discovery; and (3) lifestyle‑based disease risk prediction.
 
 > This repo contains: training code (`pre-train.py`), Python package modules under `ukbfound/`, and four reproducible notebooks for tokenization and downstream tasks.
+> New: we include a tiny synthetic example dataset (n = 10) that mimics the tokenization schema (no real UKB records) so you can run an end-to-end demo without UKB access.
 
 This is the official codebase for **A foundational model encodes deep phenotyping data and enables diverse downstream application**. 
 
@@ -42,8 +43,9 @@ ukbFound/
 │  ├─ App2.correlation.ipynb    # disease–disease correlation & communities
 │  └─ APP3.prediction.ipynb     # lifestyle-only disease prediction + SHAP
 └─ data/
-   ├─ output_data.csv        # tokenization input matrix (example path)
-   └─ ukb_traits.csv         # trait↔token mapping (example path)
+   ├─ output_data.csv          # tokenization input matrix (example path)
+   └─ ukb_traits.csv           # trait↔token mapping (example path)
+   └─ synthetic_demo/          # **NEW** tiny synthetic data (n=10) & demo scripts
 ```
 
 > **Note**: File/dir names above reflect typical usage in this repo. Adjust paths as needed in scripts/notebooks.
