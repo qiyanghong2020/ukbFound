@@ -71,7 +71,7 @@ ukbFound/
 ├── examples/
 │   ├── 01_quickstart.ipynb       # high-level walk-through of the pipeline
 │   ├── 02_tokenisation.ipynb     # how traits/values are tokenised
-│   └── run_demo.py               # NEW: minimal disease-risk prediction demo
+│   └── run_demo.py               # minimal disease-risk prediction demo
 
 └── tutorials/
     ├── UKB-tokenization.ipynb    # full tokenisation pipeline for UKB-style data
