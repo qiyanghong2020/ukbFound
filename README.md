@@ -55,7 +55,7 @@ ukbFound/
 │   └── utils/                    # seeds, logging, metrics, helpers
 
 ├── data/
-│   ├── demo_UKB_data.csv         # synthetic UKB-like table (n = 1000; no real UKB records)
+│   ├── demo_UKB_data.csv         # synthetic UKB-like table (n = 100; no real UKB records)
 │   ├── demo_UKB_tokens.csv       # tokenised version of the above
 │   ├── ukb_traits.csv            # trait–value dictionary (field_id, meaning, token_id, etc.)
 │   ├── missing_field_id.csv      # optional log from tokenisation demo
