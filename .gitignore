@@ -16,9 +16,6 @@ data/*.svg
 data/demo_*csv
 data/missing_field_id.csv
 
-# Temporary or wrong files
-pre-train.py
-examples/run_demo.py.py
 
 # Notebook autosaves
 */.ipynb_checkpoints/
