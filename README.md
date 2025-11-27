@@ -1,9 +1,3 @@
-下面是按你当前目录结构 + 新 demo（`run_demo.py` + synthetic data + demo model）**完整更新后的英文 README**。
-Figure 链接已保留，目录树按你给的新版改过，你可以直接整体替换现有 `README.md`。
-
----
-
-````markdown
 # ukbFound: A Foundation Model for Deep Phenotyping
 
 A lightweight yet rigorous foundation model that encodes thousands of UK Biobank (UKB) traits into language-like sequences for three families of applications: (1) disease subgroup stratification with survival differences; (2) inter-disease correlation/community discovery; and (3) lifestyle-based disease risk prediction.
