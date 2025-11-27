@@ -643,7 +643,7 @@ def eval_testdata(
             individual_embeddings, axis=1, keepdims=True
         )
 
-        adata_t.obsm["X_scGPT"] = individual_embeddings
+        adata_t.obsm["X_ukbfound"] = individual_embeddings
 
         results = {}
         try:
@@ -652,7 +652,7 @@ def eval_testdata(
             traceback.print_exc()
             logger.error(e)
 
-        sc.pp.neighbors(adata_t, use_rep="X_scGPT")
+        sc.pp.neighbors(adata_t, use_rep="X_ukbfound")
         sc.tl.umap(adata_t, min_dist=0.3)
         fig = sc.pl.umap(
             adata_t,
@@ -665,7 +665,7 @@ def eval_testdata(
 
         results["batch_umap"] = fig
 
-        sc.pp.neighbors(adata_t, use_rep="X_scGPT")
+        sc.pp.neighbors(adata_t, use_rep="X_ukbfound")
         sc.tl.umap(adata_t, min_dist=0.3)
         fig = sc.pl.umap(
             adata_t,

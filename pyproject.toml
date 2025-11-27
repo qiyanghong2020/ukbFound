@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ukbfound"
+version = "0.1.0"
+description = "Foundation model utilities for UK Biobank deep phenotyping"
+readme = "README.md"
+requires-python = ">=3.9"
+
+# 依赖可以留空，因为你已经用 micromamba 创建好了环境
+dependencies = []
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ukbfound*"]

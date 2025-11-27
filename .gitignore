@@ -1,0 +1,24 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+.virtual_documents/
+
+# Build / packaging
+*.egg-info/
+dist/
+build/
+
+# Demo / temporary outputs
+data/*.svg
+data/demo_*csv
+data/missing_field_id.csv
+
+# Temporary or wrong files
+pre-train.py
+examples/run_demo.py.py
+
+# Notebook autosaves
+*/.ipynb_checkpoints/

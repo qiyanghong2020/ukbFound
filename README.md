@@ -1,76 +1,121 @@
+下面是按你当前目录结构 + 新 demo（`run_demo.py` + synthetic data + demo model）**完整更新后的英文 README**。
+Figure 链接已保留，目录树按你给的新版改过，你可以直接整体替换现有 `README.md`。
+
+---
+
+````markdown
 # ukbFound: A Foundation Model for Deep Phenotyping
 
-A lightweight yet rigorous foundation model that encodes thousands of UK Biobank (UKB) traits into language-like sequences for three families of applications: (1) disease subgroup stratification with survival differences; (2) inter‑disease correlation/community discovery; and (3) lifestyle‑based disease risk prediction.
+A lightweight yet rigorous foundation model that encodes thousands of UK Biobank (UKB) traits into language-like sequences for three families of applications: (1) disease subgroup stratification with survival differences; (2) inter-disease correlation/community discovery; and (3) lifestyle-based disease risk prediction.
 
-> This repo contains: training code (`pre-train.py`), Python package modules under `ukbfound/`, and four reproducible notebooks for tokenization and downstream tasks.
-> New: we include a tiny synthetic example dataset (n = 10) that mimics the tokenization schema (no real UKB records) so you can run an end-to-end demo without UKB access.
+> This repo contains: training code (`pre-train.py`), Python package modules under `ukbfound/`, a demo pretrained model under `model/`, and Jupyter notebooks for tokenisation and downstream tasks.  
+> **New:** we include a small synthetic example dataset (`data/demo_UKB_data.csv`, n = 100), its tokenised form (`data/demo_UKB_tokens.csv`), and a minimal end-to-end demo script (`examples/run_demo.py`) so you can run disease-risk prediction without any UKB access.
 
 This is the official codebase for **A foundational model encodes deep phenotyping data and enables diverse downstream application**. 
 
-ukbFound: a foundation model with 25.3 million parameters that encoded thousands of individual-level traits into language-like sequences. By incorporating domain-specific tokenization, position-free embedding, and interpretable reasoning, ukbFound effectively captures latent disease-trait relationships from deep phenotyping data of 502,118 UK Biobank individuals.
-
+ukbFound is a 25.3M-parameter foundation model that encodes thousands of individual-level traits into language-like sequences. By combining domain-specific tokenisation, position-free embedding, and interpretable reasoning, ukbFound effectively captures latent disease–trait relationships from deep phenotyping data of 502,118 UK Biobank participants.
 
 ![FIG1_20250502](https://github.com/user-attachments/assets/5194c3c2-dda1-488e-a002-3154e34e4424)
-
 
 ---
 
 ## Highlights
-- **Hierarchical tokenization** for mixed data types
-  - *Continuous* → quartiles (Q1–Q4).
-  - *Multi‑choice* → trait token + choice value tokens.
-  - *Multi‑select* → each choice becomes a binary trait (yes/no).
-- **Position‑free input embedding**: each item is represented by the sum of its *trait* and *value* embeddings, removing dependence on column order.
-- **Pretraining objective**: masked language modeling (MLM) with stratified masking across token types.
-- **Interpretable downstream**: survival analysis for subgroups; cosine‑similarity graphs + Leiden clustering for multimorbidity; SHAP for feature attribution in prediction.
+
+- **Hierarchical tokenisation** for mixed data types  
+  - *Continuous* → quartiles (Q1–Q4) or similar discretisation.  
+  - *Multi-choice* → trait token + choice-specific value tokens.  
+  - *Multi-select* → each choice becomes a binary trait (yes/no).
+
+- **Position-free input embedding**  
+  Each item is represented by the sum of its *trait* and *value* embeddings, making the model invariant to column order.
+
+- **Pretraining objective**  
+  Masked language modelling (MLM) with stratified masking across token types, optionally combined with additional objectives (e.g., ECS).
+
+- **Interpretable downstream tasks**  
+  - Survival analysis for discovered disease subgroups.  
+  - Cosine-similarity graphs + Leiden clustering for multimorbidity and communities.  
+  - SHAP-based feature attribution for prediction models.
 
 ---
 
 ## Repository structure
-```
-ukbFound/
-├─ pre-train.py                 # main pretraining script
-├─ ukbfound/                    # library package
-│  ├─ model.py                  # TransformerModel implementation
-│  ├─ tokenizer/                # tokenization utilities (e.g., ValueVocab)
-│  ├─ preprocess.py             # Preprocessor for binning/normalization
-│  ├─ loss.py                   # MLM and related losses
-│  ├─ utils/                    # seeds, logging, metrics
-│  └─ trainer.py                # training implementation
-├─ tutorials/
-│  ├─ UKB-tokenization.ipynb    # build trait/value vocab & tokenized matrices
-│  ├─ App1.stratification.ipynb # subgrouping + KM & Cox models
-│  ├─ App2.correlation.ipynb    # disease–disease correlation & communities
-│  └─ APP3.prediction.ipynb     # lifestyle-only disease prediction + SHAP
-└─ data/
-   ├─ output_data.csv          # tokenization input matrix (example path)
-   └─ ukb_traits.csv           # trait↔token mapping (example path)
-   └─ synthetic_demo/          # **NEW** tiny synthetic data (n=10) & demo scripts
-```
 
-> **Note**: File/dir names above reflect typical usage in this repo. Adjust paths as needed in scripts/notebooks.
+Reflecting the current repo layout:
+
+```text
+ukbFound/
+├── pre-train.py                  # main pretraining script (requires UKB-like data)
+├── pyproject.toml                # package metadata (install with `pip install -e .`)
+├── LICENSE
+├── README.md
+
+├── ukbfound/                     # library package
+│   ├── __init__.py
+│   ├── model.py                  # TransformerModel implementation
+│   ├── tokenizer/                # tokenisation utilities (e.g., ValueVocab, trait_tokenizer)
+│   ├── preprocess.py             # preprocessing / binning / normalization
+│   ├── loss.py                   # MLM and related losses
+│   ├── trainer.py                # training loop implementation
+│   ├── dsbn.py, grad_reverse.py  # domain-specific batchnorm, gradient reversal
+│   └── utils/                    # seeds, logging, metrics, helpers
+
+├── data/
+│   ├── demo_UKB_data.csv         # synthetic UKB-like table (n = 1000; no real UKB records)
+│   ├── demo_UKB_tokens.csv       # tokenised version of the above
+│   ├── ukb_traits.csv            # trait–value dictionary (field_id, meaning, token_id, etc.)
+│   ├── missing_field_id.csv      # optional log from tokenisation demo
+│   ├── demo_results_diabetes.csv # (generated by run_demo.py; can be git-ignored)
+│   └── demo_ROC_diabetes.svg     # (generated ROC curve; can be git-ignored)
+
+├── model/
+│   ├── demo_model.pt             # lightweight demo pretrained model (NOT trained on UKB)
+│   ├── demo_vocab.json           # demo vocabulary
+│   ├── demo_config.json          # demo model config
+│   └── demo_args.json            # example args / hyperparameters for the demo model
+
+├── examples/
+│   ├── 01_quickstart.ipynb       # high-level walk-through of the pipeline
+│   ├── 02_tokenisation.ipynb     # how traits/values are tokenised
+│   └── run_demo.py               # NEW: minimal disease-risk prediction demo
+
+└── tutorials/
+    ├── UKB-tokenization.ipynb    # full tokenisation pipeline for UKB-style data
+    ├── App1.stratification.ipynb # disease subgrouping + KM & Cox models
+    ├── App2.correlation.ipynb    # disease–disease correlation & communities
+    └── APP3.prediction.ipynb     # lifestyle-only disease prediction + SHAP
+````
+
+> **Note:** `demo_results_diabetes.csv` and `demo_ROC_diabetes.svg` are outputs of the demo script and do not need to be version-controlled; you may add them to `.gitignore` if desired.
 
 ---
 
 ## Installation
-Tested with **Python ≥ 3.8** and **PyTorch ≥ 1.13** (2.x recommended). Create a clean env and install the core deps:
+
+Tested with **Python ≥ 3.8** and **PyTorch ≥ 1.13** (PyTorch 2.x recommended).
 
 ```bash
-conda create -n ukbfound python=3.10 -y
-conda activate ukbfound
+# 1. Create and activate environment
+micromamba create -n ukbfound -c conda-forge \
+  python=3.10 \
+  numpy pandas matplotlib scikit-learn scanpy jupyterlab \
+  seaborn networkx \
+  pip
 
-# PyTorch (pick the correct CUDA build for your system)
-# See https://pytorch.org for the latest install command.
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+micromamba activate ukbfound
 
-# Core scientific stack
-pip install numpy pandas scikit-learn matplotlib seaborn
+# 2. Install PyTorch (choose the correct CUDA build for your system)
+# See https://pytorch.org for the latest command.
+pip install --upgrade pip
+pip install torch torchvision torchaudio \
+  --index-url https://download.pytorch.org/whl/cu121
 
-# Bio / tokenization / analysis helpers
-pip install scanpy torchtext igraph networkx shap lifelines
+# 3. Additional dependencies (pip is usually more reliable for these)
+pip install igraph shap lifelines
 
-# Logging (optional)
-pip install wandb
+# 4. Install ukbFound in editable mode
+cd /path/to/ukbFound
+pip install -e .
 ```
 
 **Optional acceleration.** Flash‑attention can be installed for speed‑ups on compatible GPUs/CUDA. It’s optional; if unavailable, the code falls back to standard attention.
@@ -78,92 +123,224 @@ pip install wandb
 ---
 
 ## Quick start
-### 1) Prepare data
-Place UKB‑derived tabular features in `data/UKB/output_data.csv` (rows = individuals; columns = traits). Put the trait ↔ token mapping at `data/UKB/ukb_traits.csv`. The tokenization notebook shows how to generate these from raw UKB fields.
 
-### 2) Pretrain ukbFound
-`pre-train.py` exposes all key hyperparameters via a `hyperparameter_defaults` dict at the top of the script. Edit there for epochs, batch size, ECS threshold, etc.
+### 1) Minimal end-to-end demo: disease risk prediction (no UKB access required)
 
-**Single machine, multi‑GPU (recommended):**
+Run the new demo script from the repo root:
+
 ```bash
-# 4 GPUs example
+python examples/run_demo.py
+```
+
+This script:
+
+1. Loads the synthetic tokenised dataset `data/demo_UKB_tokens.csv` (n = 100) and trait–value dictionary `data/ukb_traits.csv`.
+2. Loads the demo model and vocabulary from `model/` (`demo_model.pt`, `demo_vocab.json`, `demo_config.json`).
+3. Selects a single disease by its `meaning` (default: `"diabetes"`).
+4. Constructs binary labels via YES/NO tokens for that disease.
+5. Masks the disease-specific tokens in the input (“predict disease from all other traits”).
+6. Runs the ukbFound-style `TransformerModel` and uses the probability of the YES token as an individual-level risk score.
+7. Computes ROC-AUC using `sklearn.metrics.roc_auc_score`.
+8. Splits individuals into risk quartiles (Q1–Q4) based on predicted probabilities, and prints prevalence in each quartile.
+9. Plots and saves a ROC curve figure (`data/demo_ROC_diabetes.svg`).
+
+> **Important:** All demo data and model weights are **illustrative only** and are **not** trained on UKB or any restricted individual-level dataset. They are designed purely to demonstrate the technical workflow of phenotype-model inference.
+
+### 2) Quickstart notebooks
+
+The following notebooks provide a high-level overview:
+
+* `examples/01_quickstart.ipynb` — a five-minute tour of the pipeline.
+* `examples/02_tokenisation.ipynb` — focuses on the tokenisation logic (continuous / multi-choice / multi-select).
+
+### 3) Full pipeline with UKB-style data
+
+For real applications (with approved UKB access), you can follow:
+
+1. `tutorials/UKB-tokenization.ipynb` to build trait and value vocabularies and export tokenised matrices.
+2. `pre-train.py` to pretrain ukbFound on UKB-like deep phenotyping data.
+3. `App1/2/3` notebooks for downstream analyses (stratification, correlation, prediction).
+
+---
+
+## Pretraining ukbFound (requires UKB-style data)
+
+To pretrain the full model, place UKB-derived tabular features and trait mapping under the expected paths (you may adapt these paths in your local setup):
+
+* `data/UKB/output_data.csv` → main feature matrix (rows = individuals; columns = traits).
+* `data/UKB/ukb_traits.csv`   → trait/value vocabularies.
+
+`pre-train.py` exposes all main hyperparameters via a `hyperparameter_defaults` dict at the top of the script. You can configure epochs, batch size, ECS threshold, etc. there.
+
+**Single machine, multi-GPU (recommended):**
+
+```bash
+# Example for 4 GPUs
 torchrun --standalone --nproc_per_node=4 pre-train.py
 ```
 
-**Common overrides inside `hyperparameter_defaults`:**
+**Typical settings in `hyperparameter_defaults`:**
+
 ```python
-epochs=50, batch_size=40, lr=1e-4,
-layer_size=256, nlayers=4, nhead=4, dropout=0.2,
-mask_ratio=0.15, n_bins=2,
-fast_transformer=True, amp=True, pre_norm=False,
-include_zero_trait=True, ecs_thres=0.0, DSBN=False,
+epochs         = 50
+batch_size     = 40
+lr             = 1e-4
+layer_size     = 256
+nlayers        = 4
+nhead          = 4
+dropout        = 0.2
+mask_ratio     = 0.15
+n_bins         = 2
+fast_transformer = True
+amp            = True
+pre_norm       = False
+include_zero_trait = True
+ecs_thres      = 0.0
+DSBN           = False
 ```
 
-**Data layout expected by the script**
-- `data/UKB/output_data.csv` → main feature matrix.
-- `data/UKB/ukb_traits.csv`    → trait/value vocabularies.
+During training, artifacts (args, vocab, checkpoints, logs) are written under a directory such as:
 
-During a run, artifacts (args, vocab, checkpoints, logs) are written under `./save/dev_UKB-<timestamp>/`.
+```text
+./save/dev_UKB-<timestamp>/
+```
 
-### 3) Downstream notebooks
-Run the notebooks in order (they’re self‑contained with clear cells):
-1. **UKB-tokenization.ipynb** — build trait and value vocabularies; export tokenized matrices.
-2. **App1.stratification.ipynb** — embed disease cohorts, Leiden clustering, KM curves, and age‑adjusted Cox models.
-3. **App2.correlation.ipynb** — cosine similarity of disease embeddings, multimorbidity pairs, and system‑level communities.
-4. **APP3.prediction.ipynb** — train classifier on lifestyle/diet embeddings; evaluate AUC; inspect SHAP attributions.
+---
 
-> Tip: for batch runs, you can execute notebooks with `papermill` or convert them to `.py`.
+## Downstream notebooks (reproducing key analyses)
+
+The `tutorials/` folder contains notebooks that mirror the main analyses from the manuscript:
+
+1. **`UKB-tokenization.ipynb`**
+
+   * Build trait and value vocabularies;
+   * Construct tokenised matrices;
+   * Export `output_data.csv` and related files.
+
+2. **`App1.stratification.ipynb`**
+
+   * Compute disease embeddings;
+   * Perform Leiden clustering;
+   * Obtain Kaplan–Meier curves;
+   * Fit age-adjusted Cox models for subgroup survival differences.
+
+3. **`App2.correlation.ipynb`**
+
+   * Calculate cosine similarity between disease embeddings;
+   * Identify multimorbidity pairs;
+   * Detect system-level disease communities (e.g., respiratory, cardiovascular).
+
+4. **`APP3.prediction.ipynb`**
+
+   * Train lifestyle-only disease risk models;
+   * Evaluate AUC and calibration metrics;
+   * Use SHAP to identify risk and protective lifestyle factors.
+
+> For batch runs, you can execute notebooks programmatically using tools such as `papermill`, or convert them to `.py` scripts.
 
 ---
 
 ## Conceptual design
-- **Token vocabularies**
-  - *Trait vocab*: one token per trait (e.g., height, smoking frequency, ICD‑10 disease presence, etc.).
-  - *Value vocab*: quartiles for continuous traits; category choices for multi‑choice; yes/no for multi‑select.
-- **Input representation**: per item embedding = `emb_trait + emb_value`. Pad/mask tokens are supported; disease tokens can be over‑sampled in masking to avoid bias.
-- **Encoder**: Transformer with ~25M parameters (configurable depth/width). CLS/mean‑pooling for individual embedding.
-- **Objectives**: MLM by default; optional ECS/DAB; AMP enabled by default.
-- **Distributed**: DDP with `find_unused_parameters=True`; LOCAL_RANK handled automatically when using `torchrun`.
+
+* **Token vocabularies**
+
+  * *Trait vocabulary* — one token per trait (e.g., height, BMI, smoking frequency, ICD-10 disease, etc.).
+  * *Value vocabulary* — quartiles for continuous traits; categorical choices for multi-choice traits; yes/no for multi-select traits.
+
+* **Input representation**
+  Each item is represented as:
+  [
+  \text{emb_item} = \text{emb_trait} + \text{emb_value}
+  ]
+  Pad/mask tokens are supported. Disease tokens can be over-sampled in the masking schedule if desired.
+
+* **Encoder architecture**
+  A configurable Transformer encoder (~25M parameters in the reference configuration) with CLS or mean-pooling for individual embeddings.
+
+* **Training objectives**
+
+  * MLM is the default objective.
+  * Optional extensions include elastic cell similarity (ECS), domain adaptation by backprop (DAB), etc.
+  * Mixed-precision (AMP) is enabled by default where supported.
+
+* **Distributed training**
+  Uses PyTorch DDP with `find_unused_parameters=True`. `LOCAL_RANK` is handled automatically when launched via `torchrun`.
 
 ---
 
 ## Reproducibility
-- Deterministic seeds via `set_seed`.
-- Train/val split performed with `train_test_split(test_size=0.1, shuffle=True)`.
-- Logging: W&B (offline mode by default). A full `run.log` is saved alongside checkpoints.
+
+* Deterministic seeding via a dedicated `set_seed` utility.
+* Train/validation splits via `sklearn.model_selection.train_test_split(test_size=0.1, shuffle=True)`.
+* W&B logging (offline mode by default) plus text logs (`run.log`) saved alongside checkpoints.
+* The demo script (`examples/run_demo.py`) and notebooks are fully runnable without UKB access, using synthetic data and demo weights.
 
 ---
 
 ## Evaluation & expected results (reference)
-The included notebooks recreate the key analyses:
-- **Subgroup stratification**: prognostically distinct subgroups in many diseases using KM/log‑rank; Cox with baseline age as covariate.
-- **Disease correlation**: tens of thousands of multimorbidity pairs; communities within systems (e.g., respiratory and cardiovascular) via cosine similarity + Leiden clustering.
-- **Prediction (lifestyle‑only)**: robust AUCs across 100+ diseases; SHAP reveals interpretable risk/protective patterns; longitudinal risk stratification by baseline scores.
 
-> Exact numbers will vary by cohort filters and seeds. See notebooks for figures/tables and to regenerate cohort‑specific metrics.
+Using appropriately preprocessed UKB-style data, the notebooks can reproduce the main findings:
+
+* **Subgroup stratification**
+
+  * Prognostically distinct subgroups in multiple diseases;
+  * Log-rank tests and age-adjusted Cox models.
+
+* **Disease correlation and communities**
+
+  * Large collections of multimorbidity pairs;
+  * System-level disease communities (e.g., respiratory, cardiovascular) from cosine similarity + Leiden clustering.
+
+* **Lifestyle-based prediction**
+
+  * Robust AUCs across a large panel of diseases;
+  * Calibration metrics (e.g., Brier scores, calibration curves);
+  * SHAP-based interpretation of lifestyle risk and protective factors;
+  * Longitudinal risk stratification based on baseline scores.
+
+Exact numbers will vary by cohort definitions, filters, and random seeds. Please refer to the notebooks for disease-specific figures and tables.
 
 ---
 
 ## Configuration reference
-Key flags in `hyperparameter_defaults`:
-- **Data**: `dataset_name`, `n_bins`, `include_zero_trait`.
-- **Optimization**: `lr`, `batch_size`, `epochs`, `schedule_ratio`.
-- **Architecture**: `layer_size (embsize & d_hid)`, `nlayers`, `nhead`, `dropout`, `pre_norm`.
-- **Training tricks**: `mask_ratio`, `fast_transformer`, `amp`, `ecs_thres`, `DSBN`, `freeze`.
 
-To resume from a checkpoint, set `load_model` to the checkpoint dir (it expects `args.json`, `best_model.pt`, and `vocab.json`).
+Key configuration flags (in `hyperparameter_defaults` and related configs):
+
+* **Data**
+
+  * `dataset_name`, `n_bins`, `include_zero_trait`.
+
+* **Optimisation**
+
+  * `lr`, `batch_size`, `epochs`, `schedule_ratio`.
+
+* **Architecture**
+
+  * `layer_size` (shared by embedding dimension and feed-forward hidden size),
+  * `nlayers`, `nhead`, `dropout`, `pre_norm`.
+
+* **Training tricks**
+
+  * `mask_ratio`, `fast_transformer`, `amp`, `ecs_thres`, `DSBN`, `freeze`.
+
+To resume from a checkpoint, set `load_model` to a previous run directory. It is expected to contain `args.json`, `best_model.pt` and `vocab.json`.
 
 ---
 
 ## Data availability & ethics
-- Individual‑level UKB data require an approved project and must comply with the UKB data access policy. This repo contains **no** raw UKB data. Token vocabularies and model inputs derived from UKB should be handled per UKB’s data‑sharing rules.
+
+* Individual-level UK Biobank data require an approved project and must comply with UKB’s data access policy.
+* This repository contains **no** raw UKB data.
+* All demo data (`demo_UKB_data.csv` and related files) are synthetic and do not correspond to real participants.
+* Any token vocabularies or model inputs derived from UKB must be handled strictly according to UKB’s data-sharing rules and your institutional policies.
 
 ---
 
 ## Citation
-If you use ukbFound, please cite the manuscript and this repository. *(Preprint/manuscript info placeholder here; update once public DOI is available.)*
 
-```
+If you use ukbFound in your work, please cite the manuscript and this repository (details to be updated once public):
+
+```bibtex
 @software{ukbfound_2025,
   title        = {ukbFound: A Foundation Model for Deep Phenotyping},
   author       = {Qiyang Hong and collaborators},
@@ -175,23 +352,31 @@ If you use ukbFound, please cite the manuscript and this repository. *(Preprint/
 ---
 
 ## Acknowledgements
-This work was supported by national and institutional funding. We thank collaborators and computing support teams. See manuscript for full acknowledgements.
+
+This work was supported by national and institutional funding. We thank all collaborators, clinical partners, and computing support teams. Please see the manuscript for full acknowledgements.
 
 ---
 
 ## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
+
+This project is licensed under the MIT License – see the [LICENSE](LICENSE) file for details.
 
 ---
 
 ## FAQ
-**Q: My GPU doesn’t support flash‑attention. Can I still run it?**  
-A: Yes. Set `fast_transformer=False` or install standard PyTorch builds; training will use regular attention.
 
-**Q: How do I run on a single GPU/CPU?**  
-A: Launch `python pre-train.py` (instead of `torchrun`) and reduce `batch_size`. Training will be slower.
+**Q: My GPU does not support flash-attention. Can I still run ukbFound?**
+Yes. Flash-attention is optional. If it is not installed, the code falls back to standard PyTorch attention. You can also explicitly set `fast_transformer=False`.
 
-**Q: How do I change which traits are included?**  
-A: Edit the tokenization notebook to filter columns before building vocab; regenerate `output_data.csv` and restart training.
+**Q: How do I run on a single GPU or CPU only?**
+Use:
 
+```bash
+python pre-train.py
+```
+
+and reduce `batch_size` accordingly. Training will be slower, but the demo (`run_demo.py`) and notebooks should still run.
+
+**Q: How do I change which traits are included?**
+Modify the tokenisation notebook (`UKB-tokenization.ipynb` or `02_tokenisation.ipynb`) to filter columns before building the vocabularies. Regenerate `output_data.csv` (or analogous files) and retrain or re-run the downstream analyses.
 

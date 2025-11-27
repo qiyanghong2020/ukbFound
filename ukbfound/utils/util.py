@@ -375,7 +375,7 @@ def eval_scib_metrics(
         adata_int=adata,
         batch_key=batch_key,
         label_key=label_key,
-        embed="X_scGPT",
+        embed="X_ukbfound",
         isolated_labels_asw_=False,
         silhouette_=True,
         hvg_score_=False,

@@ -8,69 +8,212 @@ from typing_extensions import Self
 import numpy as np
 import pandas as pd
 import torch
-import torchtext.vocab as torch_vocab
-from torchtext.vocab import Vocab
 
 from .. import logger
 
 
-class ValueVocab(Vocab):
+class ValueVocab:
     """
-    Vocabulary for traits.
+    轻量级 Vocabulary，用纯 Python 实现，去掉对 torchtext 的依赖。
+
+    功能目标：
+    - 支持从列表或字典构建 token -> index 映射
+    - 支持从文件加载（.pkl / .json）
+    - 支持 __getitem__、__contains__、__len__
+    - 支持 set_default_index / get_default_index
+    - 支持 set_default_token / pad_token 属性
+    - 支持 get_stoi() / get_itos() 以兼容原有接口
     """
 
     def __init__(
         self,
-        trait_list_or_vocab: Union[List[str], Vocab],
+        trait_list_or_vocab: Optional[Iterable[str]] = None,
         specials: Optional[List[str]] = None,
         special_first: bool = True,
         default_token: Optional[str] = "<pad>",
     ) -> None:
         """
         Initialize the vocabulary.
-        Note: add specials only works when init from a trait list.
 
         Args:
-            trait_list_or_vocab (List[str] or Vocab): List of trait names or a
-                Vocab object.
-            specials (List[str]): List of special tokens.
-            special_first (bool): Whether to add special tokens to the beginning
-                of the vocabulary.
-            default_token (str): Default token, by default will set to "<pad>",
-                if "<pad>" is in the vocabulary.
+            trait_list_or_vocab: 可迭代的 token 列表；如果为 None，则创建空 vocab。
+            specials: 特殊 token 列表（如 ["<pad>", "<mask>", "<cls>"]）。
+            special_first: 特殊 token 是否放在前面。
+            default_token: 默认 token 名称，用于缺失时回退。
         """
-        if isinstance(trait_list_or_vocab, Vocab):
-            _vocab = trait_list_or_vocab
-            if specials is not None:
-                raise ValueError(
-                    "receive non-empty specials when init from a Vocab object."
-                )
-        elif isinstance(trait_list_or_vocab, list):
-            _vocab = self._build_vocab_from_iterator(
-                trait_list_or_vocab,
-                specials=specials,
-                special_first=special_first,
-            )
+        if trait_list_or_vocab is None:
+            tokens = []
         else:
-            raise ValueError(
-                "trait_list_or_vocab must be a list of trait names or a Vocab object."
-            )
-        super().__init__(_vocab.vocab)
+            tokens = list(trait_list_or_vocab)
+
+        # 根据频次和 specials 生成有序 token 列表
+        tokens = self._build_token_list_from_iterator(
+            tokens,
+            specials=specials,
+            special_first=special_first,
+        )
+
+        self.stoi: "OrderedDict[str, int]" = OrderedDict()
+        self.itos: List[str] = []
+        self._default_index: Optional[int] = None
+        self._pad_token: Optional[str] = None
+
+        for tok in tokens:
+            if tok not in self.stoi:
+                self.stoi[tok] = len(self.itos)
+                self.itos.append(tok)
+
         if default_token is not None and default_token in self:
             self.set_default_token(default_token)
 
+    # ------------------------------------------------------------------
+    # 构建 vocab 的内部工具函数（不依赖 torchtext）
+    # ------------------------------------------------------------------
+    def _build_token_list_from_iterator(
+        self,
+        iterator: Iterable[str],
+        min_freq: int = 1,
+        specials: Optional[List[str]] = None,
+        special_first: bool = True,
+    ) -> List[str]:
+        """
+        根据频次和 specials 构建有序的 token 列表。
+        逻辑与原来的 _build_vocab_from_iterator 类似，只是改为返回 List[str]。
+        """
+        counter = Counter()
+        counter.update(iterator)
+
+        # 先从 counter 中移除 specials，避免重复计数
+        if specials is not None:
+            for tok in specials:
+                if tok in counter:
+                    del counter[tok]
+
+        # 先按 token 字典序，再按频次排序（频次从高到低）
+        sorted_by_freq_tuples = sorted(counter.items(), key=lambda x: x[0])
+        sorted_by_freq_tuples.sort(key=lambda x: x[1], reverse=True)
+
+        ordered_dict = OrderedDict(
+            (tok, freq) for tok, freq in sorted_by_freq_tuples if freq >= min_freq
+        )
+
+        # 插入 specials
+        if specials is not None:
+            if special_first:
+                specials_iter = specials[::-1]
+            else:
+                specials_iter = specials
+            for symbol in specials_iter:
+                # 频次设为 min_freq，仅用于占位
+                ordered_dict.update({symbol: min_freq})
+                ordered_dict.move_to_end(symbol, last=not special_first)
+
+        # 返回最终的 token 顺序
+        return list(ordered_dict.keys())
+
+    # ------------------------------------------------------------------
+    # 基本容器行为
+    # ------------------------------------------------------------------
+    def __len__(self) -> int:
+        return len(self.itos)
+
+    def __contains__(self, token: str) -> bool:
+        return token in self.stoi
+
+    def __getitem__(self, token: str) -> int:
+        """
+        vocab[token] -> index
+
+        若 token 不存在且设置了 default_index，则返回 default_index；
+        否则抛出 KeyError。
+        """
+        if token in self.stoi:
+            return self.stoi[token]
+        if self._default_index is not None:
+            return self._default_index
+        raise KeyError(f"Token {token!r} is not in the vocabulary.")
+
+    # ------------------------------------------------------------------
+    # 与原 torchtext.Vocab 接口兼容的辅助方法
+    # ------------------------------------------------------------------
+    def insert_token(self, token: str, index: int) -> None:
+        """
+        插入一个 token 到指定 index。若 token 已存在，则忽略。
+        用于 from_dict 等场景，尽量模拟 torchtext 的行为。
+        """
+        if token in self.stoi:
+            return
+        index = int(index)
+        if index < 0:
+            index = 0
+        if index > len(self.itos):
+            index = len(self.itos)
+
+        self.itos.insert(index, token)
+        # 重新构建 stoi
+        self.stoi = OrderedDict((tok, i) for i, tok in enumerate(self.itos))
+
+    def get_stoi(self) -> Dict[str, int]:
+        return dict(self.stoi)
+
+    def get_itos(self) -> List[str]:
+        return list(self.itos)
+
+    def set_default_index(self, index: Optional[int]) -> None:
+        self._default_index = index
+
+    def get_default_index(self) -> Optional[int]:
+        return self._default_index
+
+    # ------------------------------------------------------------------
+    # pad token / 默认 token 相关
+    # ------------------------------------------------------------------
+    @property
+    def pad_token(self) -> Optional[str]:
+        """
+        获取 pad token。
+        """
+        if getattr(self, "_pad_token", None) is None:
+            self._pad_token = None
+        return self._pad_token
+
+    @pad_token.setter
+    def pad_token(self, pad_token: str) -> None:
+        """
+        设置 pad token（不会自动添加到 vocab 中）。
+        """
+        if pad_token not in self:
+            raise ValueError(f"{pad_token} is not in the vocabulary.")
+        self._pad_token = pad_token
+
+    def set_default_token(self, default_token: str) -> None:
+        """
+        设置默认 token，即 default_index 对应的 token。
+        """
+        if default_token not in self:
+            raise ValueError(f"{default_token} is not in the vocabulary.")
+        self.set_default_index(self[default_token])
+
+    # ------------------------------------------------------------------
+    # 文件读写 / 构造方法
+    # ------------------------------------------------------------------
     @classmethod
     def from_file(cls, file_path: Union[Path, str]) -> Self:
         """
-        Load the vocabulary from a file. The file should be either a pickle or a
-        json file of token to index mapping.
+        从文件加载词表。支持：
+        - .pkl: 直接存储的 ValueVocab 或兼容结构
+        - .json: token -> index 映射
         """
         if isinstance(file_path, str):
             file_path = Path(file_path)
         if file_path.suffix == ".pkl":
             with file_path.open("rb") as f:
                 vocab = pickle.load(f)
-                return cls(vocab)
+                # 如果已经是 ValueVocab，就直接返回
+                if isinstance(vocab, cls):
+                    return vocab
+                # 否则认为是 token2idx 字典
+                return cls.from_dict(vocab)
         elif file_path.suffix == ".json":
             with file_path.open("r") as f:
                 token2idx = json.load(f)
@@ -88,109 +231,27 @@ class ValueVocab(Vocab):
         default_token: Optional[str] = "<pad>",
     ) -> Self:
         """
-        Load the vocabulary from a dictionary.
-
-        Args:
-            token2idx (Dict[str, int]): Dictionary mapping tokens to indices.
+        根据 token -> index 字典构建 ValueVocab。
+        ValueVocab 要求 index 连续，我们按 index 排序后重建。
         """
-        # initiate an empty vocabulary first
-        _vocab = cls([])
-
-        # add the tokens to the vocabulary, ValueVocab requires consecutive indices
-        for t, i in sorted(token2idx.items(), key=lambda x: x[1]):
-            _vocab.insert_token(t, i)
-
-        if default_token is not None and default_token in _vocab:
-            _vocab.set_default_token(default_token)
-
-        return _vocab
-
-    def _build_vocab_from_iterator(
-        self,
-        iterator: Iterable,
-        min_freq: int = 1,
-        specials: Optional[List[str]] = None,
-        special_first: bool = True,
-    ) -> Vocab:
-        """
-        Build a Vocab from an iterator. This function is modified from
-        torchtext.vocab.build_vocab_from_iterator. The original function always
-        splits tokens into characters, which is not what we want.
-
-        Args:
-            iterator (Iterable): Iterator used to build Vocab. Must yield list
-                or iterator of tokens.
-            min_freq (int): The minimum frequency needed to include a token in
-                the vocabulary.
-            specials (List[str]): Special symbols to add. The order of supplied
-                tokens will be preserved.
-            special_first (bool): Whether to add special tokens to the beginning
-
-        Returns:
-            torchtext.vocab.Vocab: A `Vocab` object
-        """
-
-        counter = Counter()
-        counter.update(iterator)
-
-        if specials is not None:
-            for tok in specials:
-                del counter[tok]
-
-        sorted_by_freq_tuples = sorted(counter.items(), key=lambda x: x[0])
-        sorted_by_freq_tuples.sort(key=lambda x: x[1], reverse=True)
-        ordered_dict = OrderedDict(sorted_by_freq_tuples)
-
-        if specials is not None:
-            if special_first:
-                specials = specials[::-1]
-            for symbol in specials:
-                ordered_dict.update({symbol: min_freq})
-                ordered_dict.move_to_end(symbol, last=not special_first)
-
-        word_vocab = torch_vocab.vocab(ordered_dict, min_freq=min_freq)
-        return word_vocab
-
-    @property
-    def pad_token(self) -> Optional[str]:
-        """
-        Get the pad token.
-        """
-        if getattr(self, "_pad_token", None) is None:
-            self._pad_token = None
-        return self._pad_token
-
-    @pad_token.setter
-    def pad_token(self, pad_token: str) -> None:
-        """
-        Set the pad token. Will not add the pad token to the vocabulary.
-
-        Args:
-            pad_token (str): Pad token, should be in the vocabulary.
-        """
-        if pad_token not in self:
-            raise ValueError(f"{pad_token} is not in the vocabulary.")
-        self._pad_token = pad_token
+        # 按 index 排序后的 token 列表
+        sorted_tokens = [t for t, i in sorted(token2idx.items(), key=lambda x: x[1])]
+        vocab = cls(
+            sorted_tokens,
+            specials=None,
+            special_first=True,
+            default_token=default_token,
+        )
+        return vocab
 
     def save_json(self, file_path: Union[Path, str]) -> None:
         """
-        Save the vocabulary to a json file.
+        将词表保存为 JSON（token -> index 映射）。
         """
         if isinstance(file_path, str):
             file_path = Path(file_path)
         with file_path.open("w") as f:
             json.dump(self.get_stoi(), f, indent=2)
-
-    def set_default_token(self, default_token: str) -> None:
-        """
-        Set the default token.
-
-        Args:
-            default_token (str): Default token.
-        """
-        if default_token not in self:
-            raise ValueError(f"{default_token} is not in the vocabulary.")
-        self.set_default_index(self[default_token])
 
 
 def get_default_value_vocab() -> ValueVocab:
@@ -226,7 +287,8 @@ def _build_default_value_vocab(
     logger.info(f"Building value vocabulary from {value_collection_file}")
     df = pd.read_csv(value_collection_file, sep="\t")
     value_list = df["Approved symbol"].dropna().unique().tolist()
-    value_vocab = ValueVocab(value_list)  # no special tokens set in default vocab
+    # 默认词表不设置 specials
+    value_vocab = ValueVocab(value_list)
     if save_vocab_to is not None:
         value_vocab.save_json(Path(save_vocab_to))
     return value_vocab
@@ -299,11 +361,11 @@ def tokenize_batch(
 def pad_batch(
     batch: List[Tuple],
     max_len: int,
-    vocab: Vocab,
+    vocab: ValueVocab,
     pad_token: str = "<pad>",
     pad_value: int = 0,
     cls_appended: bool = True,
-    vocab_mod: Vocab = None,
+    vocab_mod: Optional[ValueVocab] = None,
 ) -> Dict[str, torch.Tensor]:
     """
     Pad a batch of data. Returns a list of Dict[trait_id, count].
@@ -311,7 +373,7 @@ def pad_batch(
     Args:
         batch (list): A list of tuple (trait_id, count).
         max_len (int): The maximum length of the batch.
-        vocab (Vocab): The vocabulary containing the pad token.
+        vocab (ValueVocab): The vocabulary containing the pad token.
         pad_token (str): The token to pad with.
 
     Returns:
@@ -387,7 +449,7 @@ def tokenize_and_pad_batch(
     data: np.ndarray,
     value_ids: np.ndarray,
     max_len: int,
-    vocab: Vocab,
+    vocab: ValueVocab,
     pad_token: str,
     pad_value: int,
     append_cls: bool = True,
@@ -395,14 +457,19 @@ def tokenize_and_pad_batch(
     cls_token: str = "<cls>",
     return_pt: bool = True,
     mod_type: np.ndarray = None,
-    vocab_mod: Vocab = None,
+    vocab_mod: Optional[ValueVocab] = None,
 ) -> Dict[str, torch.Tensor]:
     """
     Tokenize and pad a batch of data. Returns a list of tuple (trait_id, count).
     """
     cls_id = vocab[cls_token]
     if mod_type is not None:
+        if vocab_mod is None:
+            raise ValueError("vocab_mod must be provided when mod_type is not None.")
         cls_id_mod_type = vocab_mod[cls_token]
+    else:
+        cls_id_mod_type = None
+
     tokenized_data = tokenize_batch(
         data,
         value_ids,
@@ -411,7 +478,7 @@ def tokenize_and_pad_batch(
         include_zero_value=include_zero_value,
         cls_id=cls_id,
         mod_type=mod_type,
-        cls_id_mod_type=cls_id_mod_type if mod_type is not None else None,
+        cls_id_mod_type=cls_id_mod_type,
     )
 
     batch_padded = pad_batch(
@@ -446,7 +513,7 @@ def random_mask_value(
         torch.Tensor: A tensor of masked data.
     """
     if isinstance(values, torch.Tensor):
-        # it is crutial to clone the tensor, otherwise it changes the original tensor
+        # it is crucial to clone the tensor, otherwise it changes the original tensor
         values = values.clone().detach().numpy()
     else:
         values = values.copy()
@@ -455,7 +522,9 @@ def random_mask_value(
         row = values[i]
         non_padding_idx = np.nonzero(row - pad_value)[0]
         n_mask = int(len(non_padding_idx) * mask_ratio)
-        mask_idx = np.random.choice(non_padding_idx, n_mask, replace=False)
-        row[mask_idx] = mask_value
-        row[(1302 <= row) & (row <= 2353)  & (row%2==0)] = mask_value  # hqy 20240820 for 20002, force include diseases
+        if n_mask > 0:
+            mask_idx = np.random.choice(non_padding_idx, n_mask, replace=False)
+            row[mask_idx] = mask_value
+        # hqy 20240820 for 20002, force include diseases
+        row[(1302 <= row) & (row <= 2353) & (row % 2 == 0)] = mask_value
     return torch.from_numpy(values).float()
