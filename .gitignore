@@ -11,10 +11,7 @@ __pycache__/
 dist/
 build/
 
-# Demo / temporary outputs
-data/*.svg
-data/demo_*csv
-data/missing_field_id.csv
+
 
 
 # Notebook autosaves
