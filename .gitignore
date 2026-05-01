@@ -1,0 +1,64 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+.virtual_documents/
+*/.ipynb_checkpoints/
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Build / packaging
+*.egg-info/
+dist/
+build/
+
+# Local logs and experiment outputs
+logs/
+outputs/
+runs/
+save/
+wandb/
+
+# UKB / controlled data and generated datasets
+data/
+*.csv
+*.tsv
+*.txt.gz
+*.csv.gz
+*.tsv.gz
+*.parquet
+*.feather
+*.h5
+*.hdf5
+*.npz
+*.npy
+*.pkl
+*.pickle
+*.joblib
+
+# Model weights and checkpoints
+model/
+models/
+checkpoints/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+*.bin
+
+# Local compliance / audit tooling
+ukb_git_audit_tool.exe
+gitukb_git_audit_tool.exe
