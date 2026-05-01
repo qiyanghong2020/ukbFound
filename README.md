@@ -9,7 +9,7 @@ This is the official codebase for **A foundational model encodes deep phenotypin
 
 ukbFound is a 25.3M-parameter foundation model that encodes thousands of individual-level traits into language-like sequences. By combining domain-specific tokenisation, position-free embedding, and interpretable reasoning, ukbFound effectively captures latent disease–trait relationships from deep phenotyping data of 502,118 UK Biobank participants.
 
-![FIG1_20250502](https://github.com/user-attachments/assets/5194c3c2-dda1-488e-a002-3154e34e4424)
+![ukbFound overview](docs/figures/ukbfound-overview.svg)
 
 ---
 
