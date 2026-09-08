@@ -1,11 +1,11 @@
 # ukbFound: A Foundation Model for Deep Phenotyping
 
-A lightweight yet rigorous foundation model that encodes thousands of UK Biobank (UKB) traits into language-like sequences for three families of applications: (1) disease subgroup stratification with survival differences; (2) inter-disease correlation/community discovery; and (3) lifestyle-based disease risk prediction.
+A machine-learning model for biomedical data analysis, evaluated on patient stratification, multimorbidity analysis, and disease risk prediction using large-scale UK Biobank phenotyping data.
 
 > This code-only repo contains: training code (`pre-train.py`), Python package modules under `ukbfound/`, example scripts, and Jupyter notebooks for tokenisation and downstream tasks.
 > Controlled UKB data, derived token matrices, vocabularies, generated results, and model weights/checkpoints are intentionally excluded from Git. Keep approved local assets under ignored directories such as `data/`, `model/`, or `save/` only when your UKB approval permits.
 
-This is the official codebase for **A foundational model encodes deep phenotyping data and enables diverse downstream application**.
+This is the official codebase for **[A foundational model encodes deep phenotyping data and enables diverse downstream applications](https://doi.org/10.1038/s41746-026-02736-w)**, published in *npj Digital Medicine* (2026), 9:576.
 
 ukbFound is a 25.3M-parameter foundation model that encodes thousands of individual-level traits into language-like sequences. By combining domain-specific tokenisation, position-free embedding, and interpretable reasoning, ukbFound effectively captures latent disease–trait relationships from deep phenotyping data of 502,118 UK Biobank participants.
 
@@ -327,14 +327,18 @@ To resume from a checkpoint, set `load_model` to a previous run directory. It is
 
 ## Citation
 
-If you use ukbFound in your work, please cite the manuscript and this repository (details to be updated once public):
+If you use ukbFound in your work, please cite the published article and link to this repository:
 
 ```bibtex
-@software{ukbfound_2025,
-  title        = {ukbFound: A Foundation Model for Deep Phenotyping},
-  author       = {Qiyang Hong and collaborators},
-  year         = {2025},
-  url          = {https://github.com/qiyanghong2020/ukbFound}
+@article{hong2026ukbfound,
+  title        = {A foundational model encodes deep phenotyping data and enables diverse downstream applications},
+  author       = {Hong, Qiyang and Wang, Cong and Wu, Wenqian and Li, Yuyan and Sun, Xinti and Huang, Zigeng and Wang, Jixin and Zhang, Mengyan and Wan, Peixing and Ni, Xiaolin and Yi, Erkang and Pang, Junling and Long, Erping},
+  journal      = {npj Digital Medicine},
+  year         = {2026},
+  volume       = {9},
+  pages        = {576},
+  doi          = {10.1038/s41746-026-02736-w},
+  url          = {https://doi.org/10.1038/s41746-026-02736-w}
 }
 ```
 
